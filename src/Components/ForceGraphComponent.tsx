@@ -1,6 +1,7 @@
 import {
   Component,
   For,
+  Index,
   onMount,
   onCleanup,
   createSignal,
@@ -103,16 +104,13 @@ const ForceGraph: Component<ForceGraphProps> = (props) => {
         height={window.window.innerHeight}
         class="fill-slate-800"
       > 
-        <circle cx={simNodes()[0].x} cy={simNodes()[0].y} r={simNodes()[0].r}></circle>
-        <circle cx={simNodes()[1].x} cy={simNodes()[1].y} r={simNodes()[1].r}></circle>
-        <circle cx={simNodes()[2].x} cy={simNodes()[2].y} r={simNodes()[2].r}></circle>
         <For each={simNodes()}>
-          {(node, index) => (
+          {(node,index) => (
             <SVGNode
-              x={node.x}
-              y={node.y}
-              radius={node.r}
-              text={`${node.index}`}
+              x={simNodes()[index()].x}
+              y={simNodes()[index()].y}
+              radius={simNodes()[index()].r}
+              text={`${simNodes()[index()].index}`}
             />
           )}
         </For>
