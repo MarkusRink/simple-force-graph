@@ -13,7 +13,6 @@ const data = {
 interface Props {}
 
 export const D3Graph: Component<Props> = (props) => {
-  let canvas;
   let svg;
   const screensize = { width: 500, height: 500 };
   const [count, setCount] = createSignal(screensize.width / 2);
@@ -25,22 +24,6 @@ export const D3Graph: Component<Props> = (props) => {
     1000 / 60
   );
 
-  onMount(() => {
-    const ctx: CanvasRenderingContext2D = canvas.getContext("2d");
-    let frame = requestAnimationFrame(loop);
-
-    function loop(tick) {
-      frame = requestAnimationFrame(loop);
-      ctx.clearRect(0, 0, screensize.width, screensize.height);
-      ctx.beginPath();
-      ctx.arc(count(), 75, 50, 0, 2 * Math.PI);
-      ctx.stroke();
-    }
-
-    onCleanup(() => {
-      cancelAnimationFrame(frame);
-    });
-  });
 
   //   var simulation = forceSimulation(data.nodes)
   //     .force('charge', forceManyBody())
@@ -51,24 +34,10 @@ export const D3Graph: Component<Props> = (props) => {
     <>
       <p>D3 Entry {count}</p>
       <svg ref={svg} width={screensize.width} height={screensize.height}>
-        <g>
-
-        <circle
-          cx={count()}
-          cy="50"
-          r="40"
-          class="fill-emerald-400 hover:stroke-fuchsia-800 hover:stroke-width-2"
-          onClick={(e) => console.log(e)}
-          />
-          <text  x={count()} y="50" text-anchor="middle">Hi</text>
-          </g>
+        <Edge x1={count()} x2={count()} y1={count()} y2={count() + 100}/>
+        <Node x={count()} y={count()} text="Hello"/>
+        <Node x={count()} y={count() + 100} text="Hello"/>
       </svg>
-      <canvas
-        ref={canvas}
-        class="bg-slate-300"
-        width={screensize.width}
-        height={screensize.height}
-      ></canvas>
     </>
   );
 };
@@ -76,19 +45,36 @@ export const D3Graph: Component<Props> = (props) => {
 interface NodeProps {
   x: number
   y: number
-  text: string
+  text?: string
 }
 
 const Node: Component<NodeProps> = (props) => {
-  const [isAktive, setAktiv] = createSignal(false)
+  const [isActive, setActiv] = createSignal(false)
 
   return <g>
     <circle
+          fill={isActive() ? 'red' : 'blue'}
           cx={props.x} cy={props.y}
           r="40"
           class="fill-emerald-400 hover:stroke-fuchsia-800 hover:stroke-width-2"
-          onClick={() => setAktiv(!isAktive())}
+          onClick={() => setActiv(!isActive())}
           />
           <text  x={props.x} y={props.y} text-anchor="middle">{props.text}</text>
     </g>
+}
+
+interface EdgeProps {
+  x1: number,
+  x2: number,
+  y1: number,
+  y2: number,
+  text: string
+}
+
+const Edge: Component<EdgeProps> = (props) => {
+  //TODO center text
+
+  return <g>
+    <line class="stroke-black" x1={props.x1} y1={props.y1} x2={props.x2} y2={props.y2}/>
+  </g>
 }
