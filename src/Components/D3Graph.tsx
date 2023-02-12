@@ -3,6 +3,7 @@ import {
   onCleanup,
   onMount,
   createSignal,
+  createEffect,
   Show,
   For,
 } from "solid-js";
@@ -39,30 +40,37 @@ export const D3Graph: Component<Props> = (props) => {
     1000 / 60
   );
   const radius = 40;
-  const [nodes, setNodes] = createSignal([new D3ForceNode(0), new D3ForceNode(1)]);
+  const [nodes, setNodes] = createSignal([
+    new D3ForceNode(0, radius),
+    new D3ForceNode(1, radius),
+  ]);
   let n1;
   let n2;
   const [frameCount, setFrameCount] = createSignal(0);
   const [charge, setCharge] = createSignal(-10);
 
   onMount(() => {
-    var simulation = forceSimulation(nodes())
+    const simNodes = [...nodes()];
+    var simulation = forceSimulation(simNodes)
       .force("center", forceCenter(screensize.width / 2, screensize.height / 2))
-      .force("collide", forceCollide().radius(radius * 2))
-      .force("charge", forceManyBody().strength(charge))
+      .force("collide", forceCollide(radius + 4))
       .on("tick", () => {
         setFrameCount(frameCount() + 1);
         setNodes(simulation.nodes());
       });
+    // .force("charge", forceManyBody().strength(charge))
     // .force('link', forceLink().id((d)=> d.index))
     console.log(simulation.nodes());
-    simulation.stop();
+
+    createEffect(() => simulation.nodes([...nodes()]));
 
     let frame = requestAnimationFrame(loop);
     function loop(tick) {
       frame = requestAnimationFrame(loop);
-      simulation.tick();
-      setFrameCount(frameCount() + 1);
+      // simulation.tick();
+      // console.log(simulation.nodes())
+      // setNodes(simulation.nodes());
+      // setFrameCount(frameCount() + 1);
     }
 
     onCleanup(() => {
@@ -101,63 +109,127 @@ export const D3Graph: Component<Props> = (props) => {
       >
         Remove Node
       </button>
+      <button
+        onClick={() => console.log(nodes())}
+        class="m-2 rounded bg-slate-700 p-2 text-white hover:shadow"
+      >
+        log nodes
+      </button>
+      <button
+        onClick={() =>
+          setNodes((nodes) => {
+            return nodes.map(
+              (node) =>
+                new D3ForceNode(
+                  node.index,
+                  node.x,
+                  node.y,
+                  node.r,
+                  node.vx + Math.random() * 100,
+                  node.vy + Math.random() * 100
+                )
+            );
+          })
+        }
+        class="m-2 rounded bg-slate-700 p-2 text-white hover:shadow"
+      >
+        push
+      </button>
+      <p>{`${nodes()[0].index} ${nodes()[0].r} ${nodes()[0].x} ${
+        nodes()[0].y
+      } ${nodes()[0].vx} ${nodes()[0].vy}`}</p>
+      <div>
+        <div class="flex flex-row">
+          <p>Charge: {charge()}</p>{" "}
+          <button
+            class="mx-1 rounded bg-slate-700 px-2 text-white hover:shadow"
+            onClick={() => setCharge((charge) => charge + 1)}
+          >
+            +
+          </button>{" "}
+          <button
+            class="mx-1 rounded bg-slate-700 px-2 text-white hover:shadow"
+            onClick={() => setCharge((charge) => charge - 1)}
+          >
+            -
+          </button>
+        </div>
+      </div>
       <p>
         D3 Entry {count()}, Frame {frameCount()}
       </p>
       <svg ref={svg} width={screensize.width} height={screensize.height}>
         <For each={nodes()}>
-          {(node: any, index) => {
+          {(node, index) => {
             console.log(node);
             return (
-              <Node x={node.x} y={node.y} text={node.id} />
+              <Node
+                x={node.x}
+                y={node.y}
+                radius={node.r}
+                text={`${node.index}: ${node.x.toFixed(0)}/${node.y.toFixed(
+                  0
+                )} ${node.vx.toFixed(2)}/${node.vy.toFixed(2)}`}
+              />
             );
           }}
         </For>
-        <Edge
-          x1={count()}
-          x2={count()}
-          y1={count()}
-          y2={count() + 100}
-          text=""
-        />
-        <Node x={count()} y={count()} text="Hello" />
-        <Node x={count()} y={count() + 100} text="Hello" />
+        <For each={nodes()}>
+          {(node, index) => <circle cx={node.x} cy={node.y}></circle>}
+        </For>
       </svg>
     </>
   );
 };
 
 class D3ForceNode {
-  index: number
-  x: number
-  y: number
-  r: number
-  vx: number
-  vy: number
-  constructor(index)
-  constructor(index:number, r:number)
-  constructor(index, x:number, y:number)
-  constructor(index:number, x:number = 0, y:number = 0, r:number = 1, vx:number = 0, vy:number = 0){
-    this.index = index
-    this.x = x
-    this.y = y
-    this.vx = vx
-    this.vy = vy
-    this.r = r
+  index: number;
+  x: number;
+  y: number;
+  r: number;
+  vx: number;
+  vy: number;
+  constructor(index);
+  constructor(index: number, r: number);
+  constructor(index, x: number, y: number);
+  constructor(
+    index: number,
+    x: number,
+    y: number,
+    r: number,
+    vx: number,
+    vy: number
+  );
+  constructor(
+    index: number,
+    x: number = 0,
+    y: number = 0,
+    r: number = 1,
+    vx: number = 0,
+    vy: number = 0
+  ) {
+    this.index = index;
+    this.x = x;
+    this.y = y;
+    this.vx = vx;
+    this.vy = vy;
+    this.r = r;
   }
 }
 
 interface NodeProps {
   x: number;
   y: number;
+  radius: number;
   text?: string;
 }
 
 const Node: Component<NodeProps> = (props) => {
-  const radius = 40;
+  if(props.radius == undefined) props.radius = 40
   const [isActive, setActiv] = createSignal<boolean>(true);
   const handleClick = (event) => {
     setActiv(!isActive());
+    console.log(`Node: ${props.text}`);
     console.log(isActive());
   };
 
@@ -167,7 +239,7 @@ const Node: Component<NodeProps> = (props) => {
         fill={isActive() ? "red" : "blue"}
         cx={props.x}
         cy={props.y}
-        r={radius}
+        r={props.radius}
         class="hover:stroke-width-2 fill-emerald-400 hover:stroke-fuchsia-800"
         onClick={(e) => handleClick(e)}
       />
@@ -178,16 +250,16 @@ const Node: Component<NodeProps> = (props) => {
         <circle
           fill={isActive() ? "red" : "blue"}
           cx={props.x - 10}
-          cy={props.y + radius + 10}
+          cy={props.y + props.radius + 10}
           r={5}
-          class="hover:stroke-width-2 fill-emerald-400 hover:stroke-fuchsia-800"
+          class="hover:stroke-width-2 fill-yellow-400 hover:stroke-fuchsia-800"
         />
         <circle
           fill={isActive() ? "red" : "blue"}
           cx={props.x + 10}
-          cy={props.y + radius + 10}
+          cy={props.y + props.radius + 10}
           r={5}
-          class="hover:stroke-width-2 fill-emerald-400 hover:stroke-fuchsia-800"
+          class="hover:stroke-width-2 fill-red-400 hover:stroke-fuchsia-800"
         />
       </Show>
     </g>
