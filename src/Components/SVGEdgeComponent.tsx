@@ -5,7 +5,7 @@ export interface EdgeProps {
   x2: number;
   y1: number;
   y2: number;
-  text: string;
+  text?: string;
 }
 
 const Edge: Component<EdgeProps> = (props) => {
