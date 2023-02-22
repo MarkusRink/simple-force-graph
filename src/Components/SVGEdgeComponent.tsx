@@ -12,7 +12,7 @@ const Edge: Component<EdgeProps> = (props) => {
   //TODO center text
 
   return (
-    <g>
+    <g style="position: absolute; z-index: -10;">
       <line
         class="stroke-black"
         x1={props.x1}

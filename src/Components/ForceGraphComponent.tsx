@@ -118,12 +118,11 @@ const ForceGraph: Component<ForceGraphProps> = (props) => {
             setShowButtons(true)
 
         }, {once: true});
-
     }
 
-    createEffect(() => {
-        console.log(showButtons())
-    })
+    function addEdge2(sourceIndex, targetIndex) {
+        console.log("addEdge2", sourceIndex, targetIndex)
+    }
 
 
     /**
@@ -147,6 +146,7 @@ const ForceGraph: Component<ForceGraphProps> = (props) => {
         })
     })
 
+    //TODO: All Edges must be at the top position of the SVG, therfore they can't overlay the nodes.
     return (
         <>
             <div class="absolute">
@@ -186,6 +186,7 @@ const ForceGraph: Component<ForceGraphProps> = (props) => {
                             onRemoveNode={removeNode}
                             onAddLink={addEdge}
                             showButtons={showButtons()}
+                            onAddEdge={addEdge2}
                         />
                     )}
                 </For>
