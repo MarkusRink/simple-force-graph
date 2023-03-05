@@ -28,6 +28,13 @@ export interface ForceGraphProps {
 }
 
 /** Global */
+const IDGenerator = {
+  id: 0,
+  getId: () => {
+    IDGenerator.id += 1;
+    return IDGenerator.id;
+  },
+}; //TODO: Could be a nicer datastructure.
 const [mousePosition, setMousePosition] = createSignal({ x: 0, y: 0 });
 addEventListener("mousemove", (event) => {
   setMousePosition({
@@ -58,34 +65,34 @@ function scaleVector2D(
   vector: Vector2D,
   to: { pixels?: number; percentage?: number; shortenByPixels?: number }
 ): void {
-    if (to.shortenByPixels != null) {
-        const oldLength = vectorLength(vector);
-        const newLength = oldLength - to.shortenByPixels
-        if (newLength > 0) {
-            vector.x = (vector.x / oldLength) * newLength;
-            vector.y = (vector.y / oldLength) * newLength; 
-        } 
+  if (to.shortenByPixels != null) {
+    const oldLength = vectorLength(vector);
+    const newLength = oldLength - to.shortenByPixels;
+    if (newLength > 0) {
+      vector.x = (vector.x / oldLength) * newLength;
+      vector.y = (vector.y / oldLength) * newLength;
     }
+  }
   if (to.pixels != null) {
     const length = vectorLength(vector);
-      if (length !== 0) {
-          vector.x = (vector.x / length) * to.pixels;
-          vector.y = (vector.y / length) * to.pixels;
+    if (length !== 0) {
+      vector.x = (vector.x / length) * to.pixels;
+      vector.y = (vector.y / length) * to.pixels;
     }
   }
   if (to.percentage != null) {
     vector.x = vector.x * to.percentage;
     vector.y = vector.y * to.percentage;
-  } 
+  }
 }
 
 function addVector2D(vector1: Vector2D, vector2: Vector2D) {
-    vector1.x += vector2.x
-    vector1.y += vector2.y
-};
-
+  vector1.x += vector2.x;
+  vector1.y += vector2.y;
+}
 
 const ForceGraph: Component<ForceGraphProps> = (props) => {
+  IDGenerator.id = props.nodes.length - 1;
   let svg;
   const [simNodes, setSimNodes] = createSignal(props.nodes);
   const [simEdges, setSimEdges] = createSignal([
@@ -111,15 +118,16 @@ const ForceGraph: Component<ForceGraphProps> = (props) => {
     });
 
   function addNode(sourceIndex) {
-    let targetIndex = 0;
+    let targetIndex = IDGenerator.getId();
     setSimNodes((arr) => {
-      targetIndex = arr.length;
-      return [...arr, new D3Node(arr.length, 40)];
+      return [...arr, new D3Node(targetIndex, 40, 0, 0)];
     });
-    setSimEdges((arr) => [
-      ...arr,
-      { source: sourceIndex, target: targetIndex },
-    ]);
+    setSimEdges((arr) => {
+      const res = [...arr, { source: sourceIndex, target: targetIndex }];
+      console.log(res);
+      return res;
+    });
+    console.log(targetIndex, simEdges(), simNodes());
   }
 
   function removeNode() {
@@ -162,10 +170,18 @@ const ForceGraph: Component<ForceGraphProps> = (props) => {
         console.log("drawEdge()");
         const targetIndex = searchTargetNodeIndex(event.target as HTMLElement);
         if (targetIndex != undefined && nodeIndex !== targetIndex) {
-          setSimEdges((edges) => [
-            ...edges,
-            { source: nodeIndex, target: targetIndex },
-          ]);
+          setSimEdges((edges) => {
+            const identicalEdges = edges.filter(
+              (edge) =>
+                (edge.source === nodeIndex && edge.target === targetIndex) ||
+                (edge.source === targetIndex && edge.target === nodeIndex)
+            );
+            if (identicalEdges.length === 0) {
+              return [...edges, { source: nodeIndex, target: targetIndex }];
+            } else {
+              return edges;
+            }
+          });
         }
       },
       { once: true }
@@ -194,11 +210,7 @@ const ForceGraph: Component<ForceGraphProps> = (props) => {
     <>
       <div class="absolute">
         <p>Ticks: {ticks}</p>
-        <p>
-          Edge: {drawModeEdge().origin.x.toFixed(0)} |{" "}
-          {drawModeEdge().origin.y.toFixed(0)} -> {drawModeEdge().target.x.toFixed(0)} |{" "}
-          {drawModeEdge().target.y.toFixed(0)}
-        </p>
+        <p>{simEdges().length}</p>
         <p>{`${mousePosition().x}/${mousePosition().y}`}</p>
         <button onClick={() => console.log(simNodes())}>log nodes</button>
       </div>
@@ -209,13 +221,14 @@ const ForceGraph: Component<ForceGraphProps> = (props) => {
       >
         <circle cx={mousePosition().x} cy={mousePosition().y} r="5"></circle>
         <For each={simEdges()}>
-          {(edge, idx) => {
+          {(edge, index) => {
+            console.log(edge, index());
             return (
               <SVGEdge
-                x1={simNodes()[edge.source].x}
-                y1={simNodes()[edge.source].y}
-                x2={simNodes()[edge.target].x}
-                y2={simNodes()[edge.target].y}
+                x1={simNodes()[simEdges()[index()].source].x}
+                y1={simNodes()[simEdges()[index()].source].y}
+                x2={simNodes()[simEdges()[index()].target].x}
+                y2={simNodes()[simEdges()[index()].target].y}
               ></SVGEdge>
             );
           }}
@@ -230,7 +243,7 @@ const ForceGraph: Component<ForceGraphProps> = (props) => {
               nodeIndex={node.index}
               onAddNode={addNode}
               onRemoveNode={removeNode}
-              showButtons={drawMode()}
+              showButtons={!drawMode()}
               onMakeConnection={drawEdge}
             />
           )}
