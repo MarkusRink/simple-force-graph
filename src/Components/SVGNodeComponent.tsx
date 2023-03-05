@@ -19,9 +19,10 @@ export interface NodeProps {
   text?: string;
   onAddNode: (sourceIndex: number) => void;
   onRemoveNode: () => void;
-  onAddLink: (sourceNodeIndex) => void;
+  onMakeConnection: (nodeIndex: number) => void;
   showButtons?: boolean;
-  onAddEdge: (sourceIndex: number, targetIndex: number) => void;
+  // onAddLink: (sourceNodeIndex) => void;
+  // onAddEdge: (sourceIndex: number, targetIndex: number) => void;
 }
 
 const SVGNode: Component<NodeProps> = (props) => {
@@ -30,7 +31,7 @@ const SVGNode: Component<NodeProps> = (props) => {
     setActive((isActive) => !isActive);
   };
 
-  const isVisible = () => isActive() && !drawMode();
+  const isVisible = () => isActive(); //&& !drawMode();
   //createEffect(() => {console.log(`Visible: ${isVisible()}, showButtons: ${props.showButtons}`)});
 
   const iconRadius = 15;
@@ -45,64 +46,12 @@ const SVGNode: Component<NodeProps> = (props) => {
     return { x: props.x + props.radius, y: props.y };
   };
 
-  const [drawMode, setDrawMode] = createSignal(false);
-  //   addEventListener("mouseup", () => {
-  //     setDrawMode(false);
-  //   });
-
-  function drawEdge() {
-    setDrawMode(true);
-    if (props.onAddEdge) {
-      addEventListener(
-        "mouseup",
-        (event: Event) => {
-          setDrawMode(false);
-          console.log("drawEdge()");
-          const targetIndex = searchTargetNodeIndex(
-            event.target as HTMLElement
-          );
-          if (targetIndex != undefined && props.nodeIndex !== targetIndex) {
-            props.onAddEdge(props.nodeIndex, targetIndex);
-          }
-        },
-        { once: true }
-      );
-    }
-
-    console.log("mousedown");
-  }
-
-  function searchTargetNodeIndex(element: HTMLElement): number | undefined {
-    console.log("searchTargetNodeIndex");
-    console.log(element);
-    while (element != undefined && element.nodeName !== "BODY") {
-      console.log(element.dataset.nodeindex);
-      if (element.dataset.nodeindex != undefined) {
-        return Number(element.dataset.nodeindex);
-      }
-      // next step
-      element = element.parentElement;
-    }
-    return undefined;
-  }
-
-  const [pos, setPos] = createSignal({ x: 0, y: 0 });
-  addEventListener("mousemove", (event) => {
-    setPos({
-      x: event.clientX,
-      y: event.clientY,
-    });
-  });
-
   return (
     <g
       onMouseEnter={() => handleHover()}
       onMouseLeave={() => handleHover()}
       data-nodeindex={props.nodeIndex}
     >
-      <Show when={drawMode()}>
-        <SVGEdge x1={props.x} y1={props.y} x2={pos().x} y2={pos().y}></SVGEdge>
-      </Show>
       <circle
         fill={isVisible() ? "red" : "blue"}
         cx={props.x}
@@ -140,10 +89,10 @@ const SVGNode: Component<NodeProps> = (props) => {
             <path d="M256 8C119 8 8 119 8 256s111 248 248 248 248-111 248-248S393 8 256 8zM124 296c-6.6 0-12-5.4-12-12v-56c0-6.6 5.4-12 12-12h264c6.6 0 12 5.4 12 12v56c0 6.6-5.4 12-12 12H124z" />
           </svg>
         </g>
-        <g onMouseDown={() => drawEdge()}>
+        <g onMouseDown={() => props.onMakeConnection(props.nodeIndex)}>
           <circle
-            cx={drawMode() ? pos().x : northPosition().x}
-            cy={drawMode() ? pos().y : northPosition().y}
+            cx={northPosition().x}
+            cy={northPosition().y}
             r={iconRadius * 0.6}
             class="hover:stroke-width-2 z-10 fill-solarized-45 hover:stroke-fuchsia-800"
           />
@@ -151,14 +100,8 @@ const SVGNode: Component<NodeProps> = (props) => {
             class="fill-white"
             height={iconRadius * 0.8}
             width={iconRadius * 0.8}
-            x={
-              (drawMode() ? pos().x : northPosition().x) -
-              (iconRadius * 0.8) / 2
-            }
-            y={
-              (drawMode() ? pos().y : northPosition().y) -
-              (iconRadius * 0.8) / 2
-            }
+            x={northPosition().x - (iconRadius * 0.8) / 2}
+            y={northPosition().y - (iconRadius * 0.8) / 2}
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 512 512"
           >
